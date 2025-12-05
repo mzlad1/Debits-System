@@ -104,7 +104,7 @@ const Login = () => {
               }}
               style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}
             >
-              {isRegister ? 'لديك حساب؟ سجل الدخول' : 'ليس لديك حساب؟ أنشئ حساباً'}
+              {/* {isRegister ? 'لديك حساب؟ سجل الدخول' : 'ليس لديك حساب؟ أنشئ حساباً'} */}
             </button>
           </div>
         </form>

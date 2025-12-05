@@ -6,7 +6,9 @@ import {
   where, 
   orderBy,
   Timestamp,
-  deleteDoc
+  deleteDoc,
+  doc,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -106,6 +108,32 @@ export const deleteTransactionsByCustomer = async (customerId, userId) => {
     await Promise.all(deletePromises);
   } catch (error) {
     console.error('Error deleting transactions:', error);
+    throw error;
+  }
+};
+
+// Delete a single transaction
+export const deleteTransaction = async (transactionId) => {
+  try {
+    const transactionRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
+    await deleteDoc(transactionRef);
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    throw error;
+  }
+};
+
+// Update a transaction
+export const updateTransaction = async (transactionId, transactionData) => {
+  try {
+    const transactionRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
+    await updateDoc(transactionRef, {
+      ...transactionData,
+      updatedAt: Timestamp.now()
+    });
+    return { id: transactionId, ...transactionData };
+  } catch (error) {
+    console.error('Error updating transaction:', error);
     throw error;
   }
 };

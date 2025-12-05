@@ -13,6 +13,7 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState(customer.name);
   const [editPhone, setEditPhone] = useState(customer.phone || '');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
   
   const { user } = useAuth();
 
@@ -78,16 +79,74 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
     }
   };
 
+  // Transaction edit/delete states
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const [editTransAmount, setEditTransAmount] = useState('');
+  const [editTransDescription, setEditTransDescription] = useState('');
+
+  const handleDeleteTransaction = (transaction) => {
+    setTransactionToDelete(transaction);
+  };
+
+  const confirmDeleteTransaction = async () => {
+    try {
+      setLoading(true);
+      const { deleteTransaction } = await import('../services/transactionService');
+      await deleteTransaction(transactionToDelete.id);
+      await loadTransactions();
+      setTransactionToDelete(null);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert('حدث خطأ أثناء حذف المعاملة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setTransactionToEdit(transaction);
+    setEditTransAmount(transaction.amount.toString());
+    setEditTransDescription(transaction.description || '');
+  };
+
+  const saveEditTransaction = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const { updateTransaction } = await import('../services/transactionService');
+      const updateData = { amount: parseFloat(editTransAmount) };
+      if (transactionToEdit.type === 'debt') {
+        updateData.description = editTransDescription;
+      }
+      await updateTransaction(transactionToEdit.id, updateData);
+      await loadTransactions();
+      setTransactionToEdit(null);
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      alert('حدث خطأ أثناء تحديث المعاملة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    const ampm = hours >= 12 ? 'مساءً' : 'صباحاً';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    
+    return `التاريخ: ${day}/${month}/${year} والساعة ${hours}:${formattedMinutes} ${ampm}`;
   };
 
   const formatCurrency = (amount) => {
@@ -105,6 +164,19 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
     if (balance > 0) return 'balance-positive';
     if (balance < 0) return 'balance-negative';
     return 'balance-zero';
+  };
+
+  const getSortedTransactions = () => {
+    return [...transactions].sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      
+      if (sortOrder === 'asc') {
+        return dateA - dateB;
+      } else {
+        return dateB - dateA;
+      }
+    });
   };
 
   return (
@@ -141,7 +213,24 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
           ) : (
             <>
               <div style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
-                <h4 style={{ margin: 0 }}>سجل المعاملات</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                  <h4 style={{ margin: 0 }}>سجل المعاملات</h4>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                    }}
+                    style={{ 
+                      fontSize: '0.875rem', 
+                      padding: 'var(--spacing-xs) var(--spacing-sm)',
+                      minWidth: 'auto'
+                    }}
+                    title={sortOrder === 'desc' ? 'الأحدث أولاً' : 'الأقدم أولاً'}
+                  >
+                    {sortOrder === 'desc' ? '↓ الأحدث' : '↑ الأقدم'}
+                  </button>
+                </div>
                 <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
                   <button 
                     className="btn btn-primary"
@@ -182,9 +271,9 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
                 </p>
               ) : (
                 <div>
-                  {transactions.map(transaction => (
+                  {getSortedTransactions().map(transaction => (
                     <div key={transaction.id} className="transaction-item">
-                      <div className="transaction-info">
+                      <div className="transaction-info" style={{ flex: 1 }}>
                         <div className="flex items-center gap-sm" style={{ marginBottom: '0.25rem' }}>
                           {transaction.type === 'debt' ? (
                             <>
@@ -206,14 +295,46 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
                           {formatDate(transaction.createdAt)}
                         </div>
                       </div>
-                      <div className={`transaction-amount ${
-                        transaction.type === 'payment' ? 'text-success' : 
-                        transaction.transactionType === 'cash' ? 'text-success' : 'text-danger'
-                      }`}>
-                        {transaction.type === 'debt' 
-                          ? (transaction.transactionType === 'cash' ? '' : '-')
-                          : '+'
-                        } {formatCurrency(transaction.amount)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                        <div className={`transaction-amount ${
+                          transaction.type === 'payment' ? 'text-success' : 
+                          transaction.transactionType === 'cash' ? 'text-success' : 'text-danger'
+                        }`}>
+                          {transaction.type === 'debt' 
+                            ? (transaction.transactionType === 'cash' ? '' : '-')
+                            : '+'
+                          } {formatCurrency(transaction.amount)}
+                        </div>
+                        <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditTransaction(transaction);
+                            }}
+                            style={{ 
+                              fontSize: '0.75rem', 
+                              padding: 'var(--spacing-xs) var(--spacing-sm)',
+                              minWidth: 'auto'
+                            }}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTransaction(transaction);
+                            }}
+                            style={{ 
+                              fontSize: '0.75rem', 
+                              padding: 'var(--spacing-xs) var(--spacing-sm)',
+                              minWidth: 'auto'
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -304,6 +425,99 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setShowEditModal(false)}
+                  disabled={loading}
+                  style={{ flex: 1 }}
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Transaction Confirmation Modal */}
+      {transactionToDelete && (
+        <div className="modal-overlay" onClick={() => setTransactionToDelete(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">تأكيد الحذف</h3>
+              <button className="modal-close" onClick={() => setTransactionToDelete(null)}>×</button>
+            </div>
+            <div style={{ padding: 'var(--spacing-md) 0' }}>
+              <p>هل أنت متأكد من حذف هذه المعاملة؟</p>
+              <div className="alert alert-error" style={{ marginTop: 'var(--spacing-md)' }}>
+                ⚠️ لا يمكن التراجع عن هذا الإجراء
+              </div>
+            </div>
+            <div className="flex gap-md">
+              <button 
+                className="btn btn-danger"
+                onClick={confirmDeleteTransaction}
+                disabled={loading}
+                style={{ flex: 1 }}
+              >
+                {loading ? 'جاري الحذف...' : 'نعم، احذف'}
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setTransactionToDelete(null)}
+                disabled={loading}
+                style={{ flex: 1 }}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {transactionToEdit && (
+        <div className="modal-overlay" onClick={() => setTransactionToEdit(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">تعديل المعاملة</h3>
+              <button className="modal-close" onClick={() => setTransactionToEdit(null)}>×</button>
+            </div>
+            <form onSubmit={saveEditTransaction}>
+              {transactionToEdit.type === 'debt' && (
+                <div className="form-group">
+                  <label className="form-label">التفصيل</label>
+                  <textarea
+                    className="form-textarea"
+                    value={editTransDescription}
+                    onChange={(e) => setEditTransDescription(e.target.value)}
+                    required
+                    style={{ minHeight: '80px' }}
+                  />
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">المبلغ *</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={editTransAmount}
+                  onChange={(e) => setEditTransAmount(e.target.value)}
+                  required
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="flex gap-md">
+                <button 
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  style={{ flex: 1 }}
+                >
+                  {loading ? 'جاري الحفظ...' : 'حفظ'}
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setTransactionToEdit(null)}
                   disabled={loading}
                   style={{ flex: 1 }}
                 >
