@@ -1,10 +1,10 @@
 import React from 'react'
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { addDebt, addPayment } from '../services/transactionService';
 import { addCustomer } from '../services/customerService';
 import { useAuth } from '../context/AuthContext';
 
-const AddTransaction = ({ customers, onTransactionAdded, onClose }) => {
+const AddTransaction = ({ customers, onTransactionAdded, onClose, selectedCustomer }) => {
   const [type, setType] = useState('debt'); // 'debt' or 'payment'
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -18,6 +18,33 @@ const AddTransaction = ({ customers, onTransactionAdded, onClose }) => {
   const [error, setError] = useState('');
   
   const { user } = useAuth();
+  const dropdownRef = useRef(null);
+
+  // Auto-select customer if passed as prop
+  useEffect(() => {
+    if (selectedCustomer) {
+      setCustomerId(selectedCustomer.id);
+      setCustomerName(selectedCustomer.name);
+      setSearchTerm(selectedCustomer.name);
+    }
+  }, [selectedCustomer]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
 
   // Filter customers based on search
   const handleSearchChange = (e) => {
@@ -172,7 +199,7 @@ const AddTransaction = ({ customers, onTransactionAdded, onClose }) => {
           {/* Customer Selection with Search */}
           <div className="form-group">
             <label className="form-label">الزبون *</label>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }} ref={dropdownRef}>
               <input
                 type="text"
                 className="form-input"

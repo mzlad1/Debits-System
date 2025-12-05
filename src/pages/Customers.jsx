@@ -127,6 +127,7 @@ const Customers = () => {
         {showAddTransaction && (
           <AddTransaction 
             customers={customers}
+            selectedCustomer={selectedCustomer}
             onTransactionAdded={handleTransactionAdded}
             onClose={() => {
               setShowAddTransaction(false);

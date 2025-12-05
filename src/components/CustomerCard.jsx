@@ -191,7 +191,9 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
                               <span className={`badge ${transaction.transactionType === 'cash' ? 'badge-success' : 'badge-danger'}`}>
                                 {transaction.transactionType === 'cash' ? 'كاش' : 'دين'}
                               </span>
-                              <span className="text-primary">{transaction.description}</span>
+                              <span className={transaction.transactionType === 'cash' ? 'text-success' : 'text-primary'}>
+                                {transaction.description}
+                              </span>
                             </>
                           ) : (
                             <>
@@ -204,8 +206,14 @@ const CustomerCard = ({ customer, onTransactionClick, onCustomerUpdated }) => {
                           {formatDate(transaction.createdAt)}
                         </div>
                       </div>
-                      <div className={`transaction-amount ${transaction.type === 'debt' ? 'text-danger' : 'text-success'}`}>
-                        {transaction.type === 'debt' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                      <div className={`transaction-amount ${
+                        transaction.type === 'payment' ? 'text-success' : 
+                        transaction.transactionType === 'cash' ? 'text-success' : 'text-danger'
+                      }`}>
+                        {transaction.type === 'debt' 
+                          ? (transaction.transactionType === 'cash' ? '' : '-')
+                          : '+'
+                        } {formatCurrency(transaction.amount)}
                       </div>
                     </div>
                   ))}
