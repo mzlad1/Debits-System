@@ -1,35 +1,35 @@
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  query, 
-  where, 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
   orderBy,
   Timestamp,
   deleteDoc,
   doc,
-  updateDoc
-} from 'firebase/firestore';
-import { db } from './firebase';
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "./firebase";
 
-const TRANSACTIONS_COLLECTION = 'transactions';
+const TRANSACTIONS_COLLECTION = "transactions";
 
 // Add a debt transaction
 export const addDebt = async (debtData, userId) => {
   try {
     const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), {
-      type: 'debt',
+      type: "debt",
       customerId: debtData.customerId,
       customerName: debtData.customerName,
       transactionType: debtData.transactionType, // 'debt' or 'cash'
       description: debtData.description,
       amount: parseFloat(debtData.amount),
       userId,
-      createdAt: Timestamp.now()
+      createdAt: Timestamp.now(),
     });
     return { id: docRef.id, ...debtData };
   } catch (error) {
-    console.error('Error adding debt:', error);
+    console.error("Error adding debt:", error);
     throw error;
   }
 };
@@ -38,16 +38,16 @@ export const addDebt = async (debtData, userId) => {
 export const addPayment = async (paymentData, userId) => {
   try {
     const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), {
-      type: 'payment',
+      type: "payment",
       customerId: paymentData.customerId,
       customerName: paymentData.customerName,
       amount: parseFloat(paymentData.amount),
       userId,
-      createdAt: Timestamp.now()
+      createdAt: Timestamp.now(),
     });
     return { id: docRef.id, ...paymentData };
   } catch (error) {
-    console.error('Error adding payment:', error);
+    console.error("Error adding payment:", error);
     throw error;
   }
 };
@@ -57,17 +57,17 @@ export const getTransactionsByCustomer = async (customerId, userId) => {
   try {
     const q = query(
       collection(db, TRANSACTIONS_COLLECTION),
-      where('customerId', '==', customerId),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      where("customerId", "==", customerId),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
+    return querySnapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
   } catch (error) {
-    console.error('Error getting transactions:', error);
+    console.error("Error getting transactions:", error);
     throw error;
   }
 };
@@ -79,10 +79,10 @@ export const calculateBalance = (transactions) => {
   let totalDebts = 0;
   let totalPayments = 0;
 
-  transactions.forEach(transaction => {
-    if (transaction.type === 'debt' && transaction.transactionType === 'debt') {
+  transactions.forEach((transaction) => {
+    if (transaction.type === "debt" && transaction.transactionType === "debt") {
       totalDebts += transaction.amount;
-    } else if (transaction.type === 'payment') {
+    } else if (transaction.type === "payment") {
       totalPayments += transaction.amount;
     }
   });
@@ -95,19 +95,17 @@ export const deleteTransactionsByCustomer = async (customerId, userId) => {
   try {
     const q = query(
       collection(db, TRANSACTIONS_COLLECTION),
-      where('customerId', '==', customerId),
-      where('userId', '==', userId)
+      where("customerId", "==", customerId),
+      where("userId", "==", userId)
     );
     const querySnapshot = await getDocs(q);
-    
+
     // Delete all transactions
-    const deletePromises = querySnapshot.docs.map(doc => 
-      deleteDoc(doc.ref)
-    );
-    
+    const deletePromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
+
     await Promise.all(deletePromises);
   } catch (error) {
-    console.error('Error deleting transactions:', error);
+    console.error("Error deleting transactions:", error);
     throw error;
   }
 };
@@ -118,7 +116,7 @@ export const deleteTransaction = async (transactionId) => {
     const transactionRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
     await deleteDoc(transactionRef);
   } catch (error) {
-    console.error('Error deleting transaction:', error);
+    console.error("Error deleting transaction:", error);
     throw error;
   }
 };
@@ -129,11 +127,30 @@ export const updateTransaction = async (transactionId, transactionData) => {
     const transactionRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
     await updateDoc(transactionRef, {
       ...transactionData,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     return { id: transactionId, ...transactionData };
   } catch (error) {
-    console.error('Error updating transaction:', error);
+    console.error("Error updating transaction:", error);
+    throw error;
+  }
+};
+
+// Get all transactions for a user (for statistics)
+export const getAllTransactions = async (userId) => {
+  try {
+    const q = query(
+      collection(db, TRANSACTIONS_COLLECTION),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting all transactions:", error);
     throw error;
   }
 };

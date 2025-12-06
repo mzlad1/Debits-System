@@ -1,13 +1,13 @@
-
-import React from 'react'
-import { useState, useEffect } from 'react';
-import { searchCustomers } from '../services/customerService';
-import { useAuth } from '../context/AuthContext';
-import Layout from '../components/Layout';
-import SearchBar from '../components/SearchBar';
-import CustomerCard from '../components/CustomerCard';
-import AddCustomer from '../components/AddCustomer';
-import AddTransaction from '../components/AddTransaction';
+import React from "react";
+import { useState, useEffect } from "react";
+import { searchCustomers } from "../services/customerService";
+import { useAuth } from "../context/AuthContext";
+import Layout from "../components/Layout";
+import SearchBar from "../components/SearchBar";
+import CustomerCard from "../components/CustomerCard";
+import AddCustomer from "../components/AddCustomer";
+import AddTransaction from "../components/AddTransaction";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -16,7 +16,7 @@ const Customers = () => {
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  
+
   const { user } = useAuth();
 
   useEffect(() => {
@@ -26,11 +26,11 @@ const Customers = () => {
   const loadCustomers = async () => {
     setLoading(true);
     try {
-      const data = await searchCustomers(user.uid, '');
+      const data = await searchCustomers(user.uid, "");
       setCustomers(data);
       setFilteredCustomers(data);
     } catch (error) {
-      console.error('Error loading customers:', error);
+      console.error("Error loading customers:", error);
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ const Customers = () => {
       const data = await searchCustomers(user.uid, searchTerm);
       setFilteredCustomers(data);
     } catch (error) {
-      console.error('Error searching customers:', error);
+      console.error("Error searching customers:", error);
     }
   };
 
@@ -68,13 +68,13 @@ const Customers = () => {
         <div className="flex justify-between items-center mb-xl">
           <h1>إدارة الزبائن</h1>
           <div className="flex gap-md">
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => setShowAddCustomer(true)}
             >
               + إضافة زبون
             </button>
-            <button 
+            <button
               className="btn btn-success"
               onClick={() => setShowAddTransaction(true)}
             >
@@ -83,7 +83,10 @@ const Customers = () => {
           </div>
         </div>
 
-        <SearchBar 
+        {/* Date Range Filter and Statistics */}
+        <DateRangeFilter />
+
+        <SearchBar
           onSearch={handleSearch}
           placeholder="ابحث عن زبون بالاسم..."
         />
@@ -93,22 +96,22 @@ const Customers = () => {
             <div className="spinner"></div>
           </div>
         ) : filteredCustomers.length === 0 ? (
-          <div className="card text-center" style={{ padding: '3rem' }}>
+          <div className="card text-center" style={{ padding: "3rem" }}>
             <h3 className="text-muted">لا يوجد زبائن</h3>
             <p className="text-muted">ابدأ بإضافة زبون جديد</p>
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => setShowAddCustomer(true)}
-              style={{ marginTop: '1rem' }}
+              style={{ marginTop: "1rem" }}
             >
               + إضافة زبون
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-lg">
-            {filteredCustomers.map(customer => (
-              <CustomerCard 
-                key={customer.id} 
+            {filteredCustomers.map((customer) => (
+              <CustomerCard
+                key={customer.id}
                 customer={customer}
                 onTransactionClick={handleTransactionClick}
                 onCustomerUpdated={loadCustomers}
@@ -118,14 +121,14 @@ const Customers = () => {
         )}
 
         {showAddCustomer && (
-          <AddCustomer 
+          <AddCustomer
             onCustomerAdded={handleCustomerAdded}
             onClose={() => setShowAddCustomer(false)}
           />
         )}
 
         {showAddTransaction && (
-          <AddTransaction 
+          <AddTransaction
             customers={customers}
             selectedCustomer={selectedCustomer}
             onTransactionAdded={handleTransactionAdded}
