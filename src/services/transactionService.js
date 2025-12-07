@@ -11,11 +11,12 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { sendDebtNotification, sendPaymentNotification } from "./smsService";
 
 const TRANSACTIONS_COLLECTION = "transactions";
 
 // Add a debt transaction
-export const addDebt = async (debtData, userId) => {
+export const addDebt = async (debtData, userId, customerPhone = null) => {
   try {
     const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), {
       type: "debt",
@@ -27,6 +28,31 @@ export const addDebt = async (debtData, userId) => {
       userId,
       createdAt: Timestamp.now(),
     });
+
+    // Calculate current balance after this transaction
+    if (customerPhone) {
+      try {
+        const transactions = await getTransactionsByCustomer(
+          debtData.customerId,
+          userId
+        );
+        const currentBalance = calculateBalance(transactions);
+
+        // Send SMS notification
+        await sendDebtNotification({
+          customerName: debtData.customerName,
+          customerPhone: customerPhone,
+          amount: parseFloat(debtData.amount),
+          description: debtData.description,
+          transactionType: debtData.transactionType,
+          currentBalance: currentBalance,
+        });
+      } catch (smsError) {
+        console.error("Error sending SMS notification:", smsError);
+        // Don't fail the transaction if SMS fails
+      }
+    }
+
     return { id: docRef.id, ...debtData };
   } catch (error) {
     console.error("Error adding debt:", error);
@@ -35,7 +61,7 @@ export const addDebt = async (debtData, userId) => {
 };
 
 // Add a payment transaction
-export const addPayment = async (paymentData, userId) => {
+export const addPayment = async (paymentData, userId, customerPhone = null) => {
   try {
     const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), {
       type: "payment",
@@ -45,6 +71,29 @@ export const addPayment = async (paymentData, userId) => {
       userId,
       createdAt: Timestamp.now(),
     });
+
+    // Calculate current balance after this transaction
+    if (customerPhone) {
+      try {
+        const transactions = await getTransactionsByCustomer(
+          paymentData.customerId,
+          userId
+        );
+        const currentBalance = calculateBalance(transactions);
+
+        // Send SMS notification
+        await sendPaymentNotification({
+          customerName: paymentData.customerName,
+          customerPhone: customerPhone,
+          amount: parseFloat(paymentData.amount),
+          currentBalance: currentBalance,
+        });
+      } catch (smsError) {
+        console.error("Error sending SMS notification:", smsError);
+        // Don't fail the transaction if SMS fails
+      }
+    }
+
     return { id: docRef.id, ...paymentData };
   } catch (error) {
     console.error("Error adding payment:", error);
