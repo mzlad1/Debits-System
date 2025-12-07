@@ -678,6 +678,18 @@ h4 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .navbar-content {
+    gap: var(--spacing-sm);
+  }
+
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
 }
 
 .navbar-brand {

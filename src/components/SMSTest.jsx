@@ -43,6 +43,33 @@ const SMSTest = () => {
     setMessage("مرحبا، هذه رسالة تجريبية من نظام إدارة الديون.");
   };
 
+  const useTemplate = (template) => {
+    switch (template) {
+      case "reminder":
+        setMessage(
+          "مرحبا،\n\nنذكرك بوجود رصيد مستحق. يرجى التواصل معنا لتسوية الحساب.\n\nشكراً لك"
+        );
+        break;
+      case "thanks":
+        setMessage(
+          "مرحبا،\n\nشكراً لك على سداد المبلغ المستحق. نقدر تعاملك معنا.\n\nمع أطيب التحيات"
+        );
+        break;
+      case "promo":
+        setMessage(
+          "مرحبا،\n\nلدينا عروض خاصة هذا الأسبوع! تواصل معنا للمزيد من التفاصيل.\n\nشكراً لك"
+        );
+        break;
+      case "greeting":
+        setMessage(
+          "مرحبا،\n\nنتمنى لك يوماً سعيداً. شكراً لتعاملك معنا دائماً.\n\nمع تحياتنا"
+        );
+        break;
+      default:
+        break;
+    }
+  };
+
   const apiId = import.meta.env.VITE_SMS_API_ID;
   const sender = import.meta.env.VITE_SMS_SENDER;
   const enabled = import.meta.env.VITE_SMS_ENABLED === "true";
@@ -62,9 +89,15 @@ const SMSTest = () => {
         padding: "var(--spacing-xl)",
       }}
     >
-      <h2 style={{ marginBottom: "var(--spacing-lg)" }}>
-        🔧 اختبار إعدادات SMS
-      </h2>
+      <h2 style={{ marginBottom: "var(--spacing-lg)" }}>📱 إرسال رسائل SMS</h2>
+      <p
+        style={{
+          marginBottom: "var(--spacing-xl)",
+          color: "var(--text-secondary)",
+        }}
+      >
+        أرسل رسائل SMS إلى أي رقم فلسطيني
+      </p>
 
       {/* Configuration Status */}
       <div className="card" style={{ marginBottom: "var(--spacing-lg)" }}>
@@ -144,9 +177,7 @@ const SMSTest = () => {
 
       {/* Test Form */}
       <div className="card">
-        <h3 style={{ marginBottom: "var(--spacing-md)" }}>
-          إرسال رسالة تجريبية
-        </h3>
+        <h3 style={{ marginBottom: "var(--spacing-md)" }}>إرسال رسالة</h3>
 
         <form onSubmit={handleTest}>
           <div className="form-group">
@@ -181,36 +212,63 @@ const SMSTest = () => {
           </div>
 
           <div className="form-group">
+            <label className="form-label">قوالب جاهزة</label>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "var(--spacing-sm)",
+                marginBottom: "var(--spacing-md)",
+              }}
+            >
+              <button
+                type="button"
+                className="btn-preset"
+                onClick={() => useTemplate("reminder")}
+              >
+                تذكير بالدفع
+              </button>
+              <button
+                type="button"
+                className="btn-preset"
+                onClick={() => useTemplate("thanks")}
+              >
+                شكر على الدفع
+              </button>
+              <button
+                type="button"
+                className="btn-preset"
+                onClick={() => useTemplate("promo")}
+              >
+                عرض ترويجي
+              </button>
+              <button
+                type="button"
+                className="btn-preset"
+                onClick={() => useTemplate("greeting")}
+              >
+                تحية
+              </button>
+            </div>
+          </div>
+
+          <div className="form-group">
             <label className="form-label">نص الرسالة *</label>
             <textarea
               className="form-textarea"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="اكتب رسالتك هنا..."
-              rows="4"
+              rows="6"
               required
-              style={{ minHeight: "100px" }}
+              style={{ minHeight: "120px" }}
             />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: "var(--spacing-sm)",
-              }}
+            <small
+              className="text-muted"
+              style={{ display: "block", marginTop: "var(--spacing-sm)" }}
             >
-              <small className="text-muted">عدد الأحرف: {message.length}</small>
-              <button
-                type="button"
-                className="btn-preset"
-                onClick={testWithSample}
-                style={{
-                  fontSize: "0.875rem",
-                  padding: "var(--spacing-xs) var(--spacing-sm)",
-                }}
-              >
-                استخدم نص تجريبي
-              </button>
-            </div>
+              عدد الأحرف: {message.length}
+            </small>
           </div>
 
           <button
@@ -219,7 +277,7 @@ const SMSTest = () => {
             disabled={loading || !isConfigured}
             style={{ width: "100%" }}
           >
-            {loading ? "جاري الإرسال..." : "إرسال الرسالة التجريبية"}
+            {loading ? "جاري الإرسال..." : "إرسال الرسالة"}
           </button>
         </form>
 
@@ -250,19 +308,6 @@ const SMSTest = () => {
             )}
           </div>
         )}
-      </div>
-
-      {/* Documentation Link */}
-      <div
-        className="card"
-        style={{ marginTop: "var(--spacing-lg)", textAlign: "center" }}
-      >
-        <p style={{ marginBottom: "var(--spacing-sm)" }}>
-          📚 لمزيد من المعلومات، راجع ملف <code>SMS_SETUP.md</code>
-        </p>
-        <small className="text-muted">
-          يحتوي على دليل كامل لإعداد واستخدام نظام SMS
-        </small>
       </div>
     </div>
   );
